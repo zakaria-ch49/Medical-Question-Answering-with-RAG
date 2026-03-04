@@ -18,6 +18,7 @@ license: mit
 [![GitHub](https://img.shields.io/badge/GitHub-Repository-black?style=for-the-badge&logo=github)](https://github.com/zakaria-ch49/Medical-Question-Answering-with-RAG)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 [![Python 3.11](https://img.shields.io/badge/Python-3.11-blue?style=for-the-badge&logo=python)](https://python.org)
+[![CI Tests](https://github.com/zakaria-ch49/Medical-Question-Answering-with-RAG/actions/workflows/ci.yml/badge.svg)](https://github.com/zakaria-ch49/Medical-Question-Answering-with-RAG/actions/workflows/ci.yml)
 
 <br/>
 
@@ -191,6 +192,37 @@ docker compose down
 
 ---
 
+## ⚠️ Limitations
+
+- 🌐 **Internet required** — PubMed articles are fetched in real-time; no offline mode available
+- 🐢 **First query is slow** — The BGE embedding model is loaded on first run (~30s on CPU)
+- 📄 **Abstract-only** — Only titles and abstracts are retrieved, not full-text articles
+- 🔑 **API key required** — An OpenRouter API key is needed to generate answers
+- 🏥 **Not for clinical use** — For educational and research purposes only; always consult a healthcare professional
+- 🌍 **English-biased** — PubMed is predominantly in English; non-English queries may return fewer results
+
+---
+
+## 🗺️ Roadmap
+
+| Status | Feature |
+|--------|---------|
+| ✅ Done | PubMed real-time retrieval |
+| ✅ Done | BGE semantic search with FAISS |
+| ✅ Done | Streaming LLM answers |
+| ✅ Done | Docker deployment on Hugging Face Spaces |
+| ✅ Done | CI/CD with GitHub Actions |
+| 🔄 Planned | Full-text article retrieval (PMC Open Access) |
+| 🔄 Planned | Multi-language support |
+| 🔄 Planned | Chat history / conversation memory |
+| 🔄 Planned | Export answers to PDF |
+| 🔄 Planned | Support for multiple LLM models (selectable in UI) |
+| 🔄 Planned | GPU acceleration for embeddings |
+
+> 💡 **Contributions welcome!** Feel free to open issues or pull requests.
+
+---
+
 ## 📄 License
 
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
@@ -203,13 +235,4 @@ Made with ❤️ by **Zakaria CHADADI** for medical AI research
 
 [![🚀 Try the Demo](https://img.shields.io/badge/🚀%20Try%20the%20Demo-Click%20Here-brightgreen?style=for-the-badge)](https://huggingface.co/spaces/zakaria-ch49/Medical-Question-Answering-with-Retrieval-Augmented-Generation_RAG)
 
-</div>
-| `sentence-transformers` | Embedding model loading |
-| `requests` | PubMed & OpenRouter API calls |
-| `python-dotenv` | Environment variable management |
-
----
-
-## 📄 License
-
-See [LICENSE](LICENSE).
+</div>See [LICENSE](LICENSE).
