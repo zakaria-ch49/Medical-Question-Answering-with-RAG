@@ -1,0 +1,18 @@
+# ─── CI-only lightweight dependencies ────────────────────────────────────────
+# These are the ONLY packages needed to run the unit-test suite on GitHub
+# Actions.  Heavy ML packages (torch, sentence-transformers, faiss-cpu, …)
+# are excluded because:
+#   1. They make the runner OOM / time-out, causing pip to abort before
+#      installing pytest (the root cause of "No module named pytest").
+#   2. All code paths that use them are either lazy-loaded or mocked in tests.
+
+# ─── Test runner ─────────────────────────────────────────────────────────────
+pytest
+pytest-mock
+
+# ─── HTTP & env ──────────────────────────────────────────────────────────────
+requests
+python-dotenv
+
+# ─── LangChain (lightweight core only) ───────────────────────────────────────
+langchain-core

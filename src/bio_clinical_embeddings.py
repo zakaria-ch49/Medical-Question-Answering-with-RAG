@@ -1,7 +1,4 @@
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
-from download_pubmed import download_articles
 
 # ─── Modèle d'embedding ───────────────────────────────────────────────────────
 # BAAI/bge-base-en : meilleur modèle pour la recherche sémantique en anglais.
@@ -9,15 +6,27 @@ from download_pubmed import download_articles
 # uniquement pour les QUESTIONS (pas pour les documents).
 MODEL_NAME = "BAAI/bge-base-en"
 
-print(f"Chargement du modèle d'embedding : {MODEL_NAME} ...")
-embeddings = HuggingFaceEmbeddings(
-    model_name=MODEL_NAME,
-    model_kwargs={"device": "cpu"},
-    encode_kwargs={"normalize_embeddings": True},  # Requis pour BGE (cosine similarity)
-)
-
 # Préfixe BGE requis pour les requêtes (améliore la pertinence de la recherche)
 BGE_QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
+
+# Lazy singleton — not instantiated at import time so that unit tests
+# and CI environments that don't have torch/sentence-transformers installed
+# can still import this module without error.
+_embeddings = None
+
+
+def get_embeddings():
+    """Return the shared HuggingFaceEmbeddings singleton (lazy-loaded)."""
+    global _embeddings
+    if _embeddings is None:
+        from langchain_huggingface import HuggingFaceEmbeddings  # noqa: PLC0415
+        print(f"Chargement du modèle d'embedding : {MODEL_NAME} ...")
+        _embeddings = HuggingFaceEmbeddings(
+            model_name=MODEL_NAME,
+            model_kwargs={"device": "cpu"},
+            encode_kwargs={"normalize_embeddings": True},  # Requis pour BGE (cosine similarity)
+        )
+    return _embeddings
 
 def load_documents_from_articles(articles):
     """
@@ -32,8 +41,9 @@ def create_vector_store(documents):
     """
     Crée un index vectoriel FAISS à partir des documents.
     """
+    from langchain_community.vectorstores import FAISS  # noqa: PLC0415
     print("Création de l'index vectoriel FAISS ...")
-    return FAISS.from_documents(documents, embeddings)
+    return FAISS.from_documents(documents, get_embeddings())
 
 def search_similar_documents(vector_store, query, k=2):
     """
@@ -67,6 +77,8 @@ def search_with_score(vector_store, query, k=10, score_threshold=0.30, min_resul
     return filtered
 
 if __name__ == "__main__":
+    from download_pubmed import download_articles  # noqa: PLC0415
+
     # Exemple de pipeline complet
     query = "prostatitis"
 

@@ -24,14 +24,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          key: ${{ runner.os }}-pip-ci-${{ hashFiles('requirements-ci.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-
+            ${{ runner.os }}-pip-ci-
 
-      - name: Install dependencies
+      - name: Install CI dependencies
         run: |
           pip install --upgrade pip
-          pip install -r requirements.txt
+          # Install lightweight CI requirements (no torch / heavy ML packages)
+          pip install -r requirements-ci.txt
 
       - name: Set dummy env variables for tests
         run: |
