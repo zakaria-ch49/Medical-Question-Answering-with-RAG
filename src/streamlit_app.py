@@ -15,12 +15,12 @@ load_dotenv(os.path.join(ROOT_DIR, ".env"))
 
 # ─── Configuration de la page (doit être le 1er appel Streamlit) ──────────────
 st.set_page_config(
-    page_title="Assistant Médical RAG",
+    page_title="Medical RAG Assistant",
     page_icon="🏥",
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={
-        "About": "Assistant Médical RAG — PubMed + FAISS + OpenRouter\n\n⚠️ À usage éducatif uniquement.",
+        "About": "Medical RAG Assistant — PubMed + FAISS + OpenRouter\n\n⚠️ For educational use only.",
     },
 )
 
@@ -151,6 +151,90 @@ h1, h2, h3, h4, h5      { color: #f1f5f9; }
     font-weight: 600;
     color: #e6edf3 !important;
     margin-bottom: 1rem;
+}
+
+/* ══ Chat input bar ══════════════════════════════════════════════════════════ */
+/* Kill ALL default Streamlit red/orange focus rings globally */
+*:focus, *:focus-visible, *:focus-within {
+    outline: none !important;
+    box-shadow: none !important;
+}
+[data-testid="stBottom"] {
+    background: #0d1117 !important;
+    padding: 0.75rem 1.5rem 1rem 1.5rem !important;
+    border-top: 1px solid #1e293b !important;
+}
+[data-testid="stChatInput"] {
+    background: #1c2333 !important;
+    border-radius: 30px !important;
+    border: 1.5px solid #30363d !important;
+    padding: 4px 8px 4px 18px !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.35) !important;
+    display: flex !important;
+    align-items: center !important;
+    transition: border-color 0.2s, box-shadow 0.2s !important;
+    outline: none !important;
+}
+[data-testid="stChatInput"]:focus-within {
+    border-color: #2563eb !important;
+    box-shadow: 0 4px 24px rgba(37,99,235,0.22) !important;
+    outline: none !important;
+}
+[data-testid="stChatInput"] *,
+[data-testid="stChatInput"] *:focus,
+[data-testid="stChatInput"] *:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: transparent !important;
+}
+[data-testid="stChatInputTextArea"] {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+    color: #e6edf3 !important;
+    font-size: 0.97rem !important;
+    font-family: 'Inter', sans-serif !important;
+    caret-color: #2563eb !important;
+    resize: none !important;
+    padding: 10px 0 10px 4px !important;
+}
+[data-testid="stChatInputTextArea"]:focus,
+[data-testid="stChatInputTextArea"]:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+[data-testid="stChatInputTextArea"]::placeholder {
+    color: #64748b !important;
+    font-style: normal !important;
+}
+/* Send button — blue circle */
+[data-testid="stChatInputSubmitButton"] {
+    background: #2563eb !important;
+    border-radius: 50% !important;
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    min-height: 42px !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: 0 2px 10px rgba(37,99,235,0.45) !important;
+    transition: background 0.2s, transform 0.15s, box-shadow 0.2s !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+}
+[data-testid="stChatInputSubmitButton"]:hover {
+    background: #1d4ed8 !important;
+    transform: scale(1.08) !important;
+    box-shadow: 0 4px 18px rgba(37,99,235,0.6) !important;
+}
+[data-testid="stChatInputSubmitButton"] svg {
+    fill: #ffffff !important;
+    width: 18px !important;
+    height: 18px !important;
 }
 
 /* ══ Bouton principal ══════════════════════════════════════════════════════ */
@@ -376,13 +460,13 @@ def extract_response_content(response: dict):
 
 
 def score_label(score: float):
-    """Retourne (prefix, badge_class, label) selon le score BGE."""
+    """Returns (prefix, badge_class, label) based on the BGE score."""
     if score < 0.2:
-        return "", "badge-green", "Très pertinent"
+        return "", "badge-green", "Very relevant"
     elif score < 0.35:
-        return "", "badge-yellow", "Pertinent"
+        return "", "badge-yellow", "Relevant"
     else:
-        return "", "badge-red", "Peu pertinent"
+        return "", "badge-red", "Less relevant"
 
 
 # ─── Pipeline RAG ─────────────────────────────────────────────────────────────
@@ -405,8 +489,8 @@ def run_rag_pipeline(user_question: str, pubmed_hint: str, retmax: int, top_k: i
         "error":           None,
     }
 
-    # ── Étape 0 : Traduction (parallèle) ────────────────────────────────────
-    with st.status("Étape 1/4 — Traduction et optimisation des requêtes…", expanded=True) as status:
+    # ── Step 0: Translation (parallel) ────────────────────────────────────
+    with st.status("Step 1/4 — Translating and optimizing queries…", expanded=True) as status:
         with ThreadPoolExecutor(max_workers=2) as executor:
             f_pubmed = executor.submit(translate_to_english, user_question, pubmed_hint, api_key)
             f_faiss  = executor.submit(translate_to_english, user_question, user_question, api_key)
@@ -417,39 +501,39 @@ def run_rag_pipeline(user_question: str, pubmed_hint: str, retmax: int, top_k: i
 
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown(f"**Requête PubMed :** `{pubmed_hint}` → **`{pubmed_query_en}`**")
+            st.markdown(f"**PubMed Query:** `{pubmed_hint}` → **`{pubmed_query_en}`**")
         with col2:
-            st.markdown(f"**Question FAISS :** `{question_en}`")
-        status.update(label="Étape 1/4 — Traduction terminée", state="complete", expanded=False)
+            st.markdown(f"**FAISS Question:** `{question_en}`")
+        status.update(label="Step 1/4 — Translation complete", state="complete", expanded=False)
 
-    # ── Étape 1 : Téléchargement PubMed ──────────────────────────────────────
-    with st.status(f"Étape 2/4 — Téléchargement de {retmax} articles depuis PubMed…", expanded=True) as status:
+    # ── Step 1: PubMed Download ──────────────────────────────────────────────
+    with st.status(f"Step 2/4 — Downloading {retmax} articles from PubMed…", expanded=True) as status:
         articles = download_articles(pubmed_query_en, retmax=retmax)
         if not articles:
-            result["error"] = f"Aucun article trouvé pour « {pubmed_query_en} » sur PubMed."
-            status.update(label="Aucun article trouvé", state="error", expanded=True)
+            result["error"] = f"No articles found for '{pubmed_query_en}' on PubMed."
+            status.update(label="No articles found", state="error", expanded=True)
             return result
 
         result["articles_count"] = len(articles)
-        st.markdown(f"**{len(articles)}** articles téléchargés depuis PubMed")
-        status.update(label=f"Étape 2/4 — {len(articles)} articles téléchargés", state="complete", expanded=False)
+        st.markdown(f"**{len(articles)}** articles downloaded from PubMed")
+        status.update(label=f"Step 2/4 — {len(articles)} articles downloaded", state="complete", expanded=False)
 
-    # ── Étape 2 : Index vectoriel FAISS ──────────────────────────────────────
-    with st.status("Étape 3/4 — Création de l'index vectoriel FAISS…", expanded=True) as status:
+    # ── Step 2: FAISS Vector Index ────────────────────────────────────────────
+    with st.status("Step 3/4 — Building FAISS vector index…", expanded=True) as status:
         documents    = load_documents_from_articles(articles)
         vector_store = create_vector_store(documents)
-        st.markdown(f"Index FAISS créé avec **{len(documents)}** documents")
-        status.update(label=f"Étape 3/4 — Index créé ({len(documents)} documents)", state="complete", expanded=False)
+        st.markdown(f"FAISS index built with **{len(documents)}** documents")
+        status.update(label=f"Step 3/4 — Index built ({len(documents)} documents)", state="complete", expanded=False)
 
-    # ── Étape 3 : Recherche sémantique ───────────────────────────────────────
-    with st.status(f"Étape 4/4 — Recherche des {top_k} documents les plus pertinents…", expanded=True) as status:
+    # ── Step 3: Semantic Search ───────────────────────────────────────────────
+    with st.status(f"Step 4/4 — Searching for the {top_k} most relevant documents…", expanded=True) as status:
         results_with_scores = search_with_score(
             vector_store, question_en, k=top_k * 2, score_threshold=SCORE_THRESHOLD, min_results=top_k
         )
         top_results = results_with_scores[:top_k]
         result["documents"] = top_results
-        st.markdown(f"**{len(top_results)}** documents pertinents sélectionnés")
-        status.update(label=f"Étape 4/4 — {len(top_results)} documents trouvés", state="complete", expanded=False)
+        st.markdown(f"**{len(top_results)}** relevant documents selected")
+        status.update(label=f"Step 4/4 — {len(top_results)} documents found", state="complete", expanded=False)
 
     return result
 
@@ -480,12 +564,12 @@ def _show_queries(result):
 
 
 def _show_documents(result):
-    """Affiche les documents PubMed pertinents (fonction conservée pour compatibilité)."""
-    st.markdown(f"### Documents PubMed pertinents ({len(result['documents'])} trouvés)")
+    """Display relevant PubMed documents."""
+    st.markdown(f"### Relevant PubMed Documents ({len(result['documents'])} found)")
     for i, (doc, score) in enumerate(result["documents"], 1):
         _, badge_cls, label = score_label(score)
         pmid     = doc.metadata.get("source", "N/A")
-        title    = html_module.escape(doc.metadata.get("title", "Sans titre"))
+        title    = html_module.escape(doc.metadata.get("title", "No title"))
         abstract = doc.page_content
         abstract_preview = html_module.escape(abstract[:380]) + ("…" if len(abstract) > 380 else "")
         st.markdown(f"""
@@ -495,44 +579,44 @@ def _show_documents(result):
                 <span class="doc-title">{title}</span>
                 <span class="{badge_cls}">{label}</span>
             </div>
-            <div class="doc-pmid">PMID : <a href="https://pubmed.ncbi.nlm.nih.gov/{pmid}/" target="_blank">{pmid}</a> · Score BGE : <strong>{score:.3f}</strong></div>
+            <div class="doc-pmid">PMID: <a href="https://pubmed.ncbi.nlm.nih.gov/{pmid}/" target="_blank">{pmid}</a> · BGE Score: <strong>{score:.3f}</strong></div>
             <div class="doc-abstract">{abstract_preview}</div>
         </div>
         """, unsafe_allow_html=True)
         if len(abstract) > 380:
-            with st.expander(f"Abstract complet #{i}", expanded=False):
+            with st.expander(f"Full Abstract #{i}", expanded=False):
                 st.markdown(abstract)
 
 
 def _show_disclaimer_download(result):
     """Affiche le disclaimer médical et le bouton de téléchargement."""
     st.warning(
-        "Rappel important : Cette réponse est générée automatiquement à partir d'articles PubMed. "
-        "Elle ne remplace pas un avis médical professionnel. "
-        "Vérifiez chaque référence directement sur [PubMed](https://pubmed.ncbi.nlm.nih.gov/) "
-        "avant toute utilisation clinique."
+        "Important reminder: This response is automatically generated from PubMed articles. "
+        "It does not replace professional medical advice. "
+        "Verify each reference directly on [PubMed](https://pubmed.ncbi.nlm.nih.gov/) "
+        "before any clinical use."
     )
     export_text = (
-        f"QUESTION : {result['question']}\n"
-        f"Requête PubMed : {result['pubmed_query_en']}\n"
-        f"{'─'*60}\n\nDOCUMENTS TROUVES ({len(result['documents'])}) :\n"
+        f"QUESTION: {result['question']}\n"
+        f"PubMed Query: {result['pubmed_query_en']}\n"
+        f"{'─'*60}\n\nDOCUMENTS FOUND ({len(result['documents'])}):\n"
     )
     for i, (doc, score) in enumerate(result["documents"], 1):
         _, _, label = score_label(score)
         export_text += (
             f"\n[{i}] PMID {doc.metadata.get('source','N/A')} — {label} (score: {score:.3f})\n"
-            f"    Titre : {doc.metadata.get('title','')}\n"
-            f"    Resume : {doc.page_content[:300]}…\n"
+            f"    Title: {doc.metadata.get('title','')}\n"
+            f"    Abstract: {doc.page_content[:300]}…\n"
         )
     export_text += (
-        f"\n{'─'*60}\n\nREPONSE IA :\n{result.get('response_content','')}\n\n"
+        f"\n{'─'*60}\n\nAI RESPONSE:\n{result.get('response_content','')}\n\n"
         f"{'─'*60}\n"
-        f"AVERTISSEMENT : Reponse generee automatiquement. Ne remplace pas l'avis medical.\n"
+        f"DISCLAIMER: Response automatically generated. Does not replace medical advice.\n"
     )
     st.download_button(
-        label="Télécharger le rapport (TXT)",
+        label="Download Report (TXT)",
         data=export_text,
-        file_name=f"rapport_medical_rag_{result['pubmed_query_en'].replace(' ', '_')}.txt",
+        file_name=f"medical_rag_report_{result['pubmed_query_en'].replace(' ', '_')}.txt",
         mime="text/plain",
         use_container_width=True,
     )
@@ -548,49 +632,33 @@ with st.sidebar:
     <div style="padding:1.2rem 0 0.5rem 0; text-align:center;">
         <div style="font-size:2.4rem;">🏥</div>
         <div style="font-size:1rem; font-weight:700; color:#f1f5f9; margin-top:0.3rem;">MedRAG</div>
-        <div style="font-size:0.72rem; color:#64748b; margin-top:0.1rem;">Assistant Médical Intelligent</div>
+        <div style="font-size:0.72rem; color:#64748b; margin-top:0.1rem;">Intelligent Medical Assistant</div>
     </div>
     """, unsafe_allow_html=True)
 
     st.divider()
 
-    st.markdown('<p style="font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#475569; margin-bottom:0.8rem;">Paramètres</p>', unsafe_allow_html=True)
-    retmax = st.slider("Articles PubMed", min_value=10, max_value=200, value=DEFAULT_RETMAX, step=10,
-                       help="Nombre d'articles téléchargés depuis PubMed")
-    top_k  = st.slider("Documents Top-K", min_value=2, max_value=10, value=DEFAULT_TOP_K, step=1,
-                       help="Documents envoyés au LLM pour générer la réponse")
+    st.markdown('<p style="font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#475569; margin-bottom:0.8rem;">Parameters</p>', unsafe_allow_html=True)
+    retmax = st.slider("PubMed Articles", min_value=10, max_value=200, value=DEFAULT_RETMAX, step=10,
+                       help="Number of articles downloaded from PubMed")
+    top_k  = st.slider("Top-K Documents", min_value=2, max_value=10, value=DEFAULT_TOP_K, step=1,
+                       help="Documents sent to the LLM to generate the answer")
 
     st.divider()
 
-    st.markdown('<p style="font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#475569; margin-bottom:0.6rem;">Modèles</p>', unsafe_allow_html=True)
+    st.markdown('<p style="font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#475569; margin-bottom:0.6rem;">Models</p>', unsafe_allow_html=True)
     st.markdown(f'<div style="background:#1e293b; border-radius:8px; padding:0.6rem 0.8rem; font-size:0.75rem; color:#94a3b8; margin-bottom:0.4rem;"><span style="color:#60a5fa; font-weight:600;">LLM</span><br>{MODEL_NAME.split("/")[-1]}</div>', unsafe_allow_html=True)
     st.markdown(f'<div style="background:#1e293b; border-radius:8px; padding:0.6rem 0.8rem; font-size:0.75rem; color:#94a3b8;"><span style="color:#60a5fa; font-weight:600;">Embeddings</span><br>{EMBEDDING_MODEL}</div>', unsafe_allow_html=True)
 
-    st.divider()
-
-    n_hist = len(st.session_state.history)
-    st.markdown(f'<p style="font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#475569; margin-bottom:0.5rem;">Historique ({n_hist})</p>', unsafe_allow_html=True)
-    if st.session_state.history:
-        if st.button("Effacer", use_container_width=True):
-            st.session_state.history = []
-            st.session_state.current_result = None
-            st.rerun()
-        for i, item in enumerate(reversed(st.session_state.history[-5:]), 1):
-            q = item["question"]
-            st.markdown(
-                f'<div class="sidebar-hist-item">#{i} {q[:42]}{"…" if len(q)>42 else ""}</div>',
-                unsafe_allow_html=True,
-            )
-    else:
-        st.markdown('<div style="color:#475569; font-size:0.8rem; font-style:italic;">Aucune requête.</div>', unsafe_allow_html=True)
+pubmed_hint = ""
 
 
 # ══ Header ════════════════════════════════════════════════════════════════════
 st.markdown("""
 <div class="pro-header">
     <div class="pro-header-text">
-        <h1>Assistant Médical RAG</h1>
-        <p>Recherche PubMed · Analyse sémantique FAISS · Réponse fondée sur les preuves scientifiques</p>
+        <h1>Medical RAG Assistant</h1>
+        <p>PubMed Search · FAISS Semantic Analysis · Evidence-Based AI Responses</p>
         <div style="display:flex; gap:0.5rem; margin-top:0.9rem; flex-wrap:wrap;">
             <span class="pro-badge">PubMed NCBI</span>
             <span class="pro-badge">FAISS + BGE</span>
@@ -603,56 +671,26 @@ st.markdown("""
 # ══ Disclaimer ════════════════════════════════════════════════════════════════
 st.markdown("""
 <div class="pro-disclaimer">
-    <div class="pro-disclaimer-title">Avertissement médical — Usage éducatif uniquement</div>
+    <div class="pro-disclaimer-title">Medical Disclaimer — For Educational Use Only</div>
     <ul>
-        <li>Les réponses sont générées par une IA à partir d'articles scientifiques et <strong>ne remplacent pas l'avis d'un médecin</strong>.</li>
-        <li>Consultez un professionnel de santé avant tout traitement. Vérifiez les dosages et les contre-indications.</li>
-        <li>En cas d'urgence : <strong>15 (SAMU)</strong> · <strong>18 (Pompiers)</strong> · <strong>112 (Europe)</strong></li>
+        <li>Responses are generated by AI from scientific articles and <strong>do not replace professional medical advice</strong>.</li>
+        <li>Consult a healthcare professional before any treatment. Verify dosages and contraindications.</li>
+        <li>Emergency in Morocco: <strong>150 (SAMU)</strong> · <strong>15 (Medical Emergencies)</strong> · <strong>177 (Civil Protection)</strong></li>
     </ul>
 </div>
 """, unsafe_allow_html=True)
 
-# ══ Formulaire de recherche ════════════════════════════════════════════════════
-st.markdown("""
-<div class="search-card">
-    <div class="search-card-title">Posez votre question médicale</div>
-</div>
-""", unsafe_allow_html=True)
-
-col_q, col_k = st.columns([3, 1], gap="medium")
-with col_q:
-    user_question = st.text_area(
-        "Question",
-        placeholder=(
-            "Ex : Quels sont les traitements recommandés pour la prostatite chronique ?\n"
-            "Ex : Quels sont les effets de la vitamine D sur l'immunité ?\n"
-            "Ex : Comment prévenir les infections urinaires récidivantes ?"
-        ),
-        height=120,
-        label_visibility="collapsed",
-        key="question_input",
-    )
-with col_k:
-    pubmed_hint = st.text_input(
-        "Mot-clé PubMed",
-        placeholder="Ex: prostatitis",
-        help="Optionnel — mot-clé médical pour guider la recherche PubMed",
-        key="keyword_input",
-    )
-    st.markdown("<br>", unsafe_allow_html=True)
-    search_clicked = st.button("Lancer la recherche", use_container_width=True)
+user_question = st.chat_input("Ask your medical question here…", key="question_input")
 
 # ══ Exécution du pipeline ══════════════════════════════════════════════════════
-if search_clicked:
-    if not user_question.strip():
-        st.warning("⚠️ Veuillez saisir une question médicale.")
-    elif not (get_active_api_key() and get_active_api_key() != "<OPENROUTER_API_KEY>"):
-        st.error("❌ Clé API OpenRouter introuvable. Vérifiez votre fichier `.env`.")
+if user_question:
+    if not (get_active_api_key() and get_active_api_key() != "<OPENROUTER_API_KEY>"):
+        st.error("❌ OpenRouter API key not found. Check your `.env` file.")
     else:
-        hint = pubmed_hint.strip() if pubmed_hint.strip() else user_question.strip()
+        hint = user_question.strip()
 
         st.markdown("---")
-        st.markdown('<div class="section-card"><div class="section-title">Pipeline RAG en cours…</div></div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-card"><div class="section-title">RAG Pipeline Running…</div></div>', unsafe_allow_html=True)
 
         result = run_rag_pipeline(
             user_question=user_question.strip(),
@@ -668,35 +706,35 @@ if search_clicked:
             st.markdown("---")
             st.markdown(f"""
             <div class="section-card">
-                <div class="section-title">Résumé de la recherche</div>
+                <div class="section-title">Search Summary</div>
                 <div class="metric-grid">
-                    <div class="metric-pill"><div class="mp-value">{result["articles_count"]}</div><div class="mp-label">Articles PubMed</div></div>
-                    <div class="metric-pill"><div class="mp-value">{len(result["documents"])}</div><div class="mp-label">Docs sélectionnés</div></div>
-                    <div class="metric-pill"><div class="mp-value">{retmax}</div><div class="mp-label">Demandés</div></div>
-                    <div class="metric-pill"><div class="mp-value">{top_k}</div><div class="mp-label">Top-K FAISS</div></div>
-                    <div class="metric-pill"><div class="mp-value">{SCORE_THRESHOLD}</div><div class="mp-label">Seuil score</div></div>
+                    <div class="metric-pill"><div class="mp-value">{result["articles_count"]}</div><div class="mp-label">PubMed Articles</div></div>
+                    <div class="metric-pill"><div class="mp-value">{len(result["documents"])}</div><div class="mp-label">Selected Docs</div></div>
+                    <div class="metric-pill"><div class="mp-value">{retmax}</div><div class="mp-label">Requested</div></div>
+                    <div class="metric-pill"><div class="mp-value">{top_k}</div><div class="mp-label">FAISS Top-K</div></div>
+                    <div class="metric-pill"><div class="mp-value">{SCORE_THRESHOLD}</div><div class="mp-label">Score Threshold</div></div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
             # ── Requêtes générées ─────────────────────────────────────────────
-            with st.expander("Requêtes générées", expanded=False):
+            with st.expander("Generated Queries", expanded=False):
                 c1, c2 = st.columns(2)
                 with c1:
-                    st.markdown("**Requête PubMed (MeSH) :**")
+                    st.markdown("**PubMed Query (MeSH):**")
                     st.markdown(f'<span class="query-chip">{result["pubmed_query_en"]}</span>', unsafe_allow_html=True)
                 with c2:
-                    st.markdown("**Question pour FAISS :**")
+                    st.markdown("**FAISS Question:**")
                     st.markdown(f'<span class="query-chip">{result["question_en"]}</span>', unsafe_allow_html=True)
 
-            # ── Documents PubMed ──────────────────────────────────────────────
+            # ── PubMed Documents ──────────────────────────────────────────────
             st.markdown("---")
-            st.markdown(f'<div class="section-card"><div class="section-title">Documents PubMed sélectionnés ({len(result["documents"])} / {top_k})</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="section-card"><div class="section-title">Selected PubMed Documents ({len(result["documents"])} / {top_k})</div></div>', unsafe_allow_html=True)
 
             for i, (doc, score) in enumerate(result["documents"], 1):
                 _, badge_cls, label = score_label(score)
                 pmid     = doc.metadata.get("source", "N/A")
-                title    = html_module.escape(doc.metadata.get("title", "Sans titre"))
+                title    = html_module.escape(doc.metadata.get("title", "No title"))
                 abstract = doc.page_content
                 abstract_preview = html_module.escape(abstract[:380]) + ("…" if len(abstract) > 380 else "")
 
@@ -708,20 +746,20 @@ if search_clicked:
                         <span class="{badge_cls}">{label}</span>
                     </div>
                     <div class="doc-pmid">
-                        PMID : <a href="https://pubmed.ncbi.nlm.nih.gov/{pmid}/" target="_blank">{pmid}</a>
-                        &nbsp;·&nbsp; Score BGE : <strong>{score:.3f}</strong>
+                        PMID: <a href="https://pubmed.ncbi.nlm.nih.gov/{pmid}/" target="_blank">{pmid}</a>
+                        &nbsp;·&nbsp; BGE Score: <strong>{score:.3f}</strong>
                     </div>
                     <div class="doc-abstract">{abstract_preview}</div>
                 </div>
                 """, unsafe_allow_html=True)
 
                 if len(abstract) > 380:
-                    with st.expander(f"Lire l'abstract complet — #{i}", expanded=False):
+                    with st.expander(f"Read full abstract — #{i}", expanded=False):
                         st.markdown(abstract)
 
-            # ── Réponse IA (streaming) ────────────────────────────────────────
+            # ── AI Response (streaming) ───────────────────────────────────────
             st.markdown("---")
-            st.markdown('<div class="section-card"><div class="section-title">Réponse du modèle IA</div></div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-card"><div class="section-title">AI Model Response</div></div>', unsafe_allow_html=True)
 
             docs_only = [doc for doc, _ in result["documents"]]
 
@@ -749,7 +787,7 @@ if search_clicked:
                     animation:spin 0.8s linear infinite;
                     flex-shrink:0;
                 "></div>
-                Génération de la réponse en cours…
+                Generating response…
             </div>
             <style>
             @keyframes spin { to { transform: rotate(360deg); } }
@@ -787,33 +825,33 @@ elif st.session_state.get("current_result"):
         usage = result.get("usage", {})
         st.markdown(f"""
         <div class="section-card">
-            <div class="section-title">📊 Résumé de la recherche</div>
+            <div class="section-title">📊 Search Summary</div>
             <div class="metric-grid">
-                <div class="metric-pill"><div class="mp-value">{result["articles_count"]}</div><div class="mp-label">Articles PubMed</div></div>
-                <div class="metric-pill"><div class="mp-value">{len(result["documents"])}</div><div class="mp-label">Docs sélectionnés</div></div>
-                <div class="metric-pill"><div class="mp-value">{usage.get("prompt_tokens","—")}</div><div class="mp-label">Tokens prompt</div></div>
-                <div class="metric-pill"><div class="mp-value">{usage.get("completion_tokens","—")}</div><div class="mp-label">Tokens réponse</div></div>
-                <div class="metric-pill"><div class="mp-value">{usage.get("total_tokens","—")}</div><div class="mp-label">Total tokens</div></div>
+                <div class="metric-pill"><div class="mp-value">{result["articles_count"]}</div><div class="mp-label">PubMed Articles</div></div>
+                <div class="metric-pill"><div class="mp-value">{len(result["documents"])}</div><div class="mp-label">Selected Docs</div></div>
+                <div class="metric-pill"><div class="mp-value">{usage.get("prompt_tokens","—")}</div><div class="mp-label">Prompt Tokens</div></div>
+                <div class="metric-pill"><div class="mp-value">{usage.get("completion_tokens","—")}</div><div class="mp-label">Response Tokens</div></div>
+                <div class="metric-pill"><div class="mp-value">{usage.get("total_tokens","—")}</div><div class="mp-label">Total Tokens</div></div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        with st.expander("Requêtes générées", expanded=False):
+        with st.expander("Generated Queries", expanded=False):
             c1, c2 = st.columns(2)
             with c1:
-                st.markdown("**PubMed MeSH :**")
+                st.markdown("**PubMed MeSH:**")
                 st.markdown(f'<span class="query-chip">{result["pubmed_query_en"]}</span>', unsafe_allow_html=True)
             with c2:
-                st.markdown("**FAISS :**")
+                st.markdown("**FAISS:**")
                 st.markdown(f'<span class="query-chip">{result["question_en"]}</span>', unsafe_allow_html=True)
 
         st.markdown("---")
-        st.markdown(f'<div class="section-card"><div class="section-title">Documents PubMed ({len(result["documents"])} trouvés)</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="section-card"><div class="section-title">PubMed Documents ({len(result["documents"])} found)</div></div>', unsafe_allow_html=True)
 
         for i, (doc, score) in enumerate(result["documents"], 1):
             _, badge_cls, label = score_label(score)
             pmid     = doc.metadata.get("source", "N/A")
-            title    = html_module.escape(doc.metadata.get("title", "Sans titre"))
+            title    = html_module.escape(doc.metadata.get("title", "No title"))
             abstract = doc.page_content
             abstract_preview = html_module.escape(abstract[:380]) + ("…" if len(abstract) > 380 else "")
             st.markdown(f"""
@@ -823,16 +861,16 @@ elif st.session_state.get("current_result"):
                     <span class="doc-title">{title}</span>
                     <span class="{badge_cls}">{label}</span>
                 </div>
-                <div class="doc-pmid">PMID : <a href="https://pubmed.ncbi.nlm.nih.gov/{pmid}/" target="_blank">{pmid}</a> · Score BGE : <strong>{score:.3f}</strong></div>
+                <div class="doc-pmid">PMID: <a href="https://pubmed.ncbi.nlm.nih.gov/{pmid}/" target="_blank">{pmid}</a> · BGE Score: <strong>{score:.3f}</strong></div>
                 <div class="doc-abstract">{abstract_preview}</div>
             </div>
             """, unsafe_allow_html=True)
             if len(abstract) > 380:
-                with st.expander(f"Abstract complet #{i}", expanded=False):
+                with st.expander(f"Full Abstract #{i}", expanded=False):
                     st.markdown(abstract)
 
         st.markdown("---")
-        st.markdown('<div class="section-card"><div class="section-title">Réponse du modèle IA</div></div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-card"><div class="section-title">AI Model Response</div></div>', unsafe_allow_html=True)
         with st.container(border=True):
             st.markdown(result["response_content"])
 
