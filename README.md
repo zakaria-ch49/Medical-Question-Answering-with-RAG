@@ -193,7 +193,7 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 
 <div align="center">
 
-Made with ❤️ for medical AI research
+Made with ❤️ by **Zakaria CHADADI** for medical AI research
 
 [![🚀 Try the Demo](https://img.shields.io/badge/🚀%20Try%20the%20Demo-Click%20Here-brightgreen?style=for-the-badge)](https://huggingface.co/spaces/zakaria-ch49/Medical-Question-Answering-with-Retrieval-Augmented-Generation_RAG)
 
