@@ -8,7 +8,7 @@ services:
     image: medical-rag-assistant:latest
     container_name: medical_rag_app
     ports:
-      - "8501:8501"
+      - "7860:7860"
     env_file:
       - .env
     volumes:
