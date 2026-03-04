@@ -179,9 +179,15 @@ docker compose down
 | `LangChain` | RAG pipeline orchestration |
 | `BAAI/bge-base-en` | Biomedical text embeddings |
 | `FAISS` | Vector similarity search |
-| `OpenRouter` | LLM API gateway (Qwen, GPT-4, etc.) |
+| `OpenRouter` | LLM API gateway |
+| `Qwen3-VL-235B-A22B-Thinking` | LLM used for answer generation (235B total params, 22B active — MoE architecture) |
 | `PubMed NCBI API` | Scientific medical literature |
 | `Docker` | Containerized deployment |
+
+> 🧠 **LLM Details:** [`qwen/qwen3-vl-235b-a22b-thinking`](https://openrouter.ai/qwen/qwen3-vl-235b-a22b-thinking) via OpenRouter
+> - **Total parameters:** 235 billion
+> - **Active parameters:** 22 billion (Mixture of Experts)
+> - **Capability:** Advanced reasoning, multilingual, medical context understanding
 
 ---
 
