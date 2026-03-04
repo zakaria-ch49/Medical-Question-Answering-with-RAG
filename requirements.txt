@@ -1,0 +1,22 @@
+# ─── Web UI ───────────────────────────────────────────────────────────────────
+streamlit
+
+# ─── HTTP & API ───────────────────────────────────────────────────────────────
+requests
+openai
+
+# ─── RAG / LangChain ──────────────────────────────────────────────────────────
+langchain
+langchain-huggingface
+langchain-community
+langchain-core
+
+# ─── Embeddings & Vector Store ────────────────────────────────────────────────
+sentence-transformers
+faiss-cpu
+torch
+transformers
+
+# ─── Utilities ────────────────────────────────────────────────────────────────
+numpy
+python-dotenv

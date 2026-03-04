@@ -1,0 +1,13 @@
+# Normalize line endings for text files
+txt text
+py text
+md text
+
+# Treat binary files as-is
+*.png binary
+*.jpg binary
+*.gif binary
+
+# Use Git LFS for large files
+*.model filter=lfs diff=lfs merge=lfs
+*.data filter=lfs diff=lfs merge=lfs
