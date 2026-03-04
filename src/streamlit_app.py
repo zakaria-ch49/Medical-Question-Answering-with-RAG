@@ -168,10 +168,14 @@ h1, h2, h3, h4, h5      { color: #f1f5f9; }
     background: #1c2333 !important;
     border-radius: 30px !important;
     border: 1.5px solid #30363d !important;
-    padding: 4px 8px 4px 18px !important;
+    padding: 4px 6px 4px 16px !important;
     box-shadow: 0 4px 20px rgba(0,0,0,0.35) !important;
     display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
     align-items: center !important;
+    width: 100% !important;
+    min-height: 52px !important;
     transition: border-color 0.2s, box-shadow 0.2s !important;
     outline: none !important;
 }
@@ -197,7 +201,13 @@ h1, h2, h3, h4, h5      { color: #f1f5f9; }
     font-family: 'Inter', sans-serif !important;
     caret-color: #2563eb !important;
     resize: none !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    width: 100% !important;
     padding: 10px 0 10px 4px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
 }
 [data-testid="stChatInputTextArea"]:focus,
 [data-testid="stChatInputTextArea"]:focus-visible {
@@ -213,10 +223,12 @@ h1, h2, h3, h4, h5      { color: #f1f5f9; }
 [data-testid="stChatInputSubmitButton"] {
     background: #2563eb !important;
     border-radius: 50% !important;
-    width: 42px !important;
-    height: 42px !important;
-    min-width: 42px !important;
-    min-height: 42px !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    max-width: 38px !important;
+    max-height: 38px !important;
     border: none !important;
     outline: none !important;
     box-shadow: 0 2px 10px rgba(37,99,235,0.45) !important;
@@ -225,6 +237,9 @@ h1, h2, h3, h4, h5      { color: #f1f5f9; }
     align-items: center !important;
     justify-content: center !important;
     flex-shrink: 0 !important;
+    flex-grow: 0 !important;
+    margin-left: 6px !important;
+    margin-right: 4px !important;
 }
 [data-testid="stChatInputSubmitButton"]:hover {
     background: #1d4ed8 !important;
@@ -680,7 +695,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-user_question = st.chat_input("Ask your medical question here…", key="question_input")
+user_question = st.chat_input("Ask a medical question…", key="question_input")
 
 # ══ Exécution du pipeline ══════════════════════════════════════════════════════
 if user_question:
