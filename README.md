@@ -44,7 +44,7 @@ license: mit
 - 🔍 **Real-time PubMed Search** — Fetches up-to-date scientific articles from NCBI's PubMed database
 - 🧠 **Semantic Search with BGE Embeddings** — Uses `BAAI/bge-base-en`, a high-performance biomedical embedding model
 - ⚡ **FAISS Vector Store** — Lightning-fast similarity search across thousands of medical documents
-- 🤖 **LLM-powered Answers** — Generates structured, cited, evidence-based answers via OpenRouter
+- 🤖 **LLM-powered Answers** — Generates structured, cited, evidence-based answers via **Qwen3-VL-235B-A22B-Thinking** (235B params, MoE) through OpenRouter
 - 🌊 **Streaming Responses** — Real-time token-by-token streaming for a smooth user experience
 - 🌍 **Multilingual** — Responds in the same language as the user's question
 - 🐳 **Dockerized** — Ready for deployment anywhere
