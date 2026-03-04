@@ -1,3 +1,13 @@
+---
+title: Medical Question Answering with Retrieval Augmented Generation RAG
+emoji: 🏥
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+license: mit
+---
+
 # 🏥 Medical RAG Assistant
 
 > **Retrieval-Augmented Generation** system for medical question answering, powered by **PubMed**, **FAISS**, **BGE embeddings**, and **OpenRouter LLM**.
