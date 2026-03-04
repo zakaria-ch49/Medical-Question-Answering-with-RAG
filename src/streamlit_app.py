@@ -642,24 +642,6 @@ with col_k:
     st.markdown("<br>", unsafe_allow_html=True)
     search_clicked = st.button("Lancer la recherche", use_container_width=True)
 
-# ══ Exemples ══════════════════════════════════════════════════════════════════
-with st.expander("Questions exemples — cliquez pour pré-remplir", expanded=False):
-    examples = [
-        ("Traitements prostatite chronique", "prostatitis"),
-        ("Effets du zinc sur le rhume", "zinc rhinovirus"),
-        ("Vitamine D et immunité", "vitamin D immunity"),
-        ("Antibiotiques infections urinaires", "urinary tract infection"),
-        ("Dépression et exercice physique", "depression exercise"),
-        ("Traitement migraine chronique", "chronic migraine"),
-    ]
-    cols = st.columns(3)
-    for idx, (question, keyword) in enumerate(examples):
-        with cols[idx % 3]:
-            if st.button(question, use_container_width=True, key=f"ex_{idx}"):
-                st.session_state["question_input"] = question
-                st.session_state["keyword_input"]  = keyword
-                st.rerun()
-
 # ══ Exécution du pipeline ══════════════════════════════════════════════════════
 if search_clicked:
     if not user_question.strip():
