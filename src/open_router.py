@@ -21,8 +21,7 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "<OPENROUTER_API_KEY>")
 
 # Vérifier si la clé API est définie
 if not OPENROUTER_API_KEY or OPENROUTER_API_KEY == "<OPENROUTER_API_KEY>":
-    print("Erreur : La clé API OPENROUTER_API_KEY n'est pas définie. Veuillez la définir dans le fichier .env.")
-    exit(1)
+    print("Avertissement : La clé API OPENROUTER_API_KEY n'est pas définie. Veuillez la définir dans les variables d'environnement.")
 
 def generate_messages_from_documents(documents, user_query):
     """
