@@ -7,12 +7,6 @@ from dotenv import load_dotenv
 # Ajouter le répertoire app au chemin Python pour les imports relatifs
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-"""
-    Statistiques d'utilisation :
-    Tokens utilisés : 903 (626 pour le prompt, 277 pour la complétion).
-    Coût : 0 (aucun coût signalé).
-"""
-
 # Charger les variables d'environnement depuis le fichier .env
 load_dotenv()
 

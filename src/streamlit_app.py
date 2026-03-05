@@ -31,7 +31,7 @@ from bio_clinical_embeddings import (
     create_vector_store,
     search_with_score,
 )
-from open_router import query_openrouter, stream_openrouter, OPENROUTER_API_KEY
+from open_router import stream_openrouter, OPENROUTER_API_KEY
 
 # ─── Constantes ───────────────────────────────────────────────────────────────
 DEFAULT_RETMAX    = 50
@@ -457,23 +457,6 @@ def translate_to_english(question: str, hint: str, api_key: str) -> str:
     return hint
 
 
-def extract_response_content(response: dict):
-    """Extrait le texte et les stats d'usage d'une réponse OpenRouter."""
-    if not response:
-        return None, {}
-    choices = response.get("choices", [])
-    if not choices:
-        return None, {}
-    message = choices[0].get("message", {})
-    content = message.get("content", "").strip()
-    if not content:
-        for detail in message.get("reasoning_details", []):
-            if detail.get("type") == "reasoning.text":
-                content = detail.get("text", "").strip()
-                break
-    return content or None, response.get("usage", {})
-
-
 def score_label(score: float):
     """Returns (prefix, badge_class, label) based on the BGE score."""
     if score < 0.2:
@@ -555,54 +538,6 @@ def run_rag_pipeline(user_question: str, pubmed_hint: str, retmax: int, top_k: i
 
 # ─── Fonctions d'affichage réutilisables ──────────────────────────────────────
 
-def _show_metrics(result):
-    """Affiche les métriques en haut des résultats."""
-    usage = result.get("usage", {})
-    m1, m2, m3, m4, m5 = st.columns(5)
-    m1.metric("📥 Articles téléchargés",  result["articles_count"])
-    m2.metric("📄 Documents analysés",    len(result["documents"]))
-    m3.metric("🔤 Prompt (tokens)",       usage.get("prompt_tokens",     "—"))
-    m4.metric("💬 Réponse (tokens)",      usage.get("completion_tokens", "—"))
-    m5.metric("📦 Total (tokens)",        usage.get("total_tokens",      "—"))
-
-
-def _show_queries(result):
-    """Affiche le détail des requêtes générées."""
-    with st.expander("🔍 Détail des requêtes générées", expanded=False):
-        c1, c2 = st.columns(2)
-        with c1:
-            st.markdown("**Requête PubMed (anglais MeSH) :**")
-            st.code(result["pubmed_query_en"], language=None)
-        with c2:
-            st.markdown("**Question traduite pour FAISS :**")
-            st.code(result["question_en"], language=None)
-
-
-def _show_documents(result):
-    """Display relevant PubMed documents."""
-    st.markdown(f"### Relevant PubMed Documents ({len(result['documents'])} found)")
-    for i, (doc, score) in enumerate(result["documents"], 1):
-        _, badge_cls, label = score_label(score)
-        pmid     = doc.metadata.get("source", "N/A")
-        title    = html_module.escape(doc.metadata.get("title", "No title"))
-        abstract = doc.page_content
-        abstract_preview = html_module.escape(abstract[:380]) + ("…" if len(abstract) > 380 else "")
-        st.markdown(f"""
-        <div class="doc-card">
-            <div class="doc-card-header">
-                <span class="doc-number">#{i}</span>
-                <span class="doc-title">{title}</span>
-                <span class="{badge_cls}">{label}</span>
-            </div>
-            <div class="doc-pmid">PMID: <a href="https://pubmed.ncbi.nlm.nih.gov/{pmid}/" target="_blank">{pmid}</a> · BGE Score: <strong>{score:.3f}</strong></div>
-            <div class="doc-abstract">{abstract_preview}</div>
-        </div>
-        """, unsafe_allow_html=True)
-        if len(abstract) > 380:
-            with st.expander(f"Full Abstract #{i}", expanded=False):
-                st.markdown(abstract)
-
-
 def _show_disclaimer_download(result):
     """Affiche le disclaimer médical et le bouton de téléchargement."""
     st.warning(
@@ -664,9 +599,6 @@ with st.sidebar:
     st.markdown('<p style="font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#475569; margin-bottom:0.6rem;">Models</p>', unsafe_allow_html=True)
     st.markdown(f'<div style="background:#1e293b; border-radius:8px; padding:0.6rem 0.8rem; font-size:0.75rem; color:#94a3b8; margin-bottom:0.4rem;"><span style="color:#60a5fa; font-weight:600;">LLM</span><br>{MODEL_NAME.split("/")[-1]}</div>', unsafe_allow_html=True)
     st.markdown(f'<div style="background:#1e293b; border-radius:8px; padding:0.6rem 0.8rem; font-size:0.75rem; color:#94a3b8;"><span style="color:#60a5fa; font-weight:600;">Embeddings</span><br>{EMBEDDING_MODEL}</div>', unsafe_allow_html=True)
-
-pubmed_hint = ""
-
 
 # ══ Header ════════════════════════════════════════════════════════════════════
 st.markdown("""

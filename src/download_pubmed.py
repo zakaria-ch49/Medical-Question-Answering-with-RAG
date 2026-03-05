@@ -25,66 +25,6 @@ def search_pubmed(query, retmax=500):
         print(f"Error lors de la recherche dans pubmed: {e}")
         return []
     
-def fetch_article(pmid):
-    #recuperer le titre et abstract d'un article pubmed
-
-    url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
-    params = {
-        "db": "pubmed",
-        "id": pmid,
-        "retmode": "xml"
-    }
-
-    try:
-        response = requests.get(url, params=params, timeout=15)
-        response.raise_for_status()
-        root = ET.fromstring(response.content)
-
-        # extraire le titre
-        #title contient le titre final
-        title = ""
-
-        #title_el contient le titre brut XML expl : <ArticleTitle>Effect of CBD on Prostatitis</ArticleTitle>
-        title_el = root.find(".//ArticleTitle")
-        if title_el is not None:
-            """
-            .itertext() permet de recuperer le texte ce qui est dans XML expl : ["Effect of ", "CBD", " on Prostatitis"]
-            .join perment de concatener les element pour devient comme ca : "Effect of CBD on Prostatitis"
-            .strip() permet de supprimer les espaces au debut et a la fin du titre
-            """
-            title = "".join(title_el.itertext()).strip()
-
-        # extraire l'abstract
-        abstract_parts = []
-        for abstract_text in root.iter("AbstractText"):
-            #recuperer les labels si existe
-            label = abstract_text.get("label", "")
-            #recuperer le texte de label
-            text = "".join(abstract_text.itertext()).strip()
-            if text:
-                if label:
-                    abstract_parts.append(f"{label}: {text}")
-                else:
-                    abstract_parts.append(text)
-
-        abstract = " ".join(abstract_parts)
-        return title, abstract
-
-    except requests.exceptions.RequestException as e:
-        print(f"Erreur reseau pour pmid {pmid}: {e}")
-        return "", ""
-    except ET.ParseError as e:
-        print(f"Errur XML pour pmid {pmid}: {e}")
-        return "", ""
-    except Exception as e:
-        print(f"Erreur inattendue pour PMID {pmid}: {e}")
-        return "", ""
-
-#configuration
-data_dir = "./data"
-if not os.path.exists(data_dir):
-    os.makedirs(data_dir)
-
 def fetch_articles_batch(pmids):
     """
     Récupère le titre et l'abstract de PLUSIEURS articles PubMed en une seule requête.

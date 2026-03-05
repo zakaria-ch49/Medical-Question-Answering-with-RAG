@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from download_pubmed import download_articles
-from bio_clinical_embeddings import load_documents_from_articles, create_vector_store, search_similar_documents, search_with_score
+from bio_clinical_embeddings import load_documents_from_articles, create_vector_store, search_with_score
 from open_router import query_openrouter, OPENROUTER_API_KEY
 import requests, json
 

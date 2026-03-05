@@ -13,7 +13,6 @@ services:
       - .env
     volumes:
       - ./data/cache:/app/data/cache   # persist downloaded articles cache
-      - ./data/raw:/app/data/raw       # read-only raw medical data
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]

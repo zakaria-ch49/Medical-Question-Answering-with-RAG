@@ -24,7 +24,7 @@ license: mit
 
 > **An intelligent medical assistant that retrieves real scientific evidence from PubMed and generates structured, evidence-based answers using state-of-the-art LLMs.**
 
-⚠️ _For educational purposes only. Not a substitute for professional medical advice._
+⚠️ _For educational purposes only — not a substitute for professional medical advice._
 
 </div>
 
@@ -42,56 +42,67 @@ license: mit
 
 ## ✨ Features
 
-- 🔍 **Real-time PubMed Search** — Fetches up-to-date scientific articles from NCBI's PubMed database
-- 🧠 **Semantic Search with BGE Embeddings** — Uses `BAAI/bge-base-en`, a high-performance biomedical embedding model
-- ⚡ **FAISS Vector Store** — Lightning-fast similarity search across thousands of medical documents
-- 🤖 **LLM-powered Answers** — Generates structured, cited, evidence-based answers via **Qwen3-VL-235B-A22B-Thinking** (235B params, MoE) through OpenRouter
-- 🌊 **Streaming Responses** — Real-time token-by-token streaming for a smooth user experience
-- 🌍 **Multilingual** — Responds in the same language as the user's question
-- 🐳 **Dockerized** — Ready for deployment anywhere
+| | Feature | Detail |
+|---|---|---|
+| 🔍 | **Real-time PubMed Search** | Fetches up-to-date scientific articles from NCBI's PubMed database (E-utilities API) |
+| 🧠 | **BGE Semantic Embeddings** | `BAAI/bge-base-en` — state-of-the-art biomedical embedding model |
+| ⚡ | **FAISS Vector Store** | Lightning-fast similarity search across thousands of documents |
+| 🌐 | **Auto Query Translation** | Converts any language question into a precise PubMed MeSH query |
+| 🤖 | **LLM-Powered Answers** | Structured, cited, evidence-based answers via **Qwen3-235B-A22B-Thinking** through OpenRouter |
+| 🌊 | **Streaming Responses** | Real-time token-by-token output for a smooth experience |
+| 🌍 | **Multilingual** | Responds in the same language as the user's question |
+| 🐳 | **Dockerized** | One-command deployment anywhere |
 
 ---
 
 ## 📐 Architecture
 
 ```
-User Question
-     │
-     ▼
-┌─────────────────────────────────────────────────────────┐
-│                   Streamlit UI (src/streamlit_app.py)    │
-└──────────────────────┬──────────────────────────────────┘
-                       │
-          ┌────────────▼────────────┐
-          │  PubMed Downloader      │  ←  src/download_pubmed.py
-          │  (NCBI E-utilities API) │
-          └────────────┬────────────┘
-                       │  articles (title + abstract)
-          ┌────────────▼────────────┐
-          │  BGE Embedding Engine   │  ←  src/bio_clinical_embeddings.py
-          │  BAAI/bge-base-en       │
-          │  FAISS Vector Store     │
-          └────────────┬────────────┘
-                       │  top-k relevant documents
-          ┌────────────▼────────────┐
-          │  OpenRouter LLM         │  ←  src/open_router.py
-          │  (Qwen / any model)     │
-          └────────────┬────────────┘
-                       │
-                  Medical Answer
+User Question (any language)
+        │
+        ▼
+┌───────────────────────────────────────────────┐
+│          Streamlit Web UI                      │
+│          src/streamlit_app.py                  │
+└──────────────────┬────────────────────────────┘
+                   │
+     ┌─────────────▼──────────────┐
+     │   Query Translator          │   OpenRouter API
+     │   (LLM → MeSH English)      │ ──────────────────
+     └─────────────┬──────────────┘
+                   │  optimised PubMed query
+     ┌─────────────▼──────────────┐
+     │   PubMed Downloader         │   src/download_pubmed.py
+     │   NCBI E-utilities API      │   (batch fetch, up to 200 articles)
+     └─────────────┬──────────────┘
+                   │  title + abstract (preprocessed)
+     ┌─────────────▼──────────────┐
+     │   BGE Embedding Engine      │   src/bio_clinical_embeddings.py
+     │   BAAI/bge-base-en          │
+     │   FAISS Vector Index        │
+     └─────────────┬──────────────┘
+                   │  top-k relevant documents (BGE score ≤ 0.30)
+     ┌─────────────▼──────────────┐
+     │   OpenRouter LLM            │   src/open_router.py
+     │   Qwen3-235B-A22B-Thinking  │   (streaming SSE)
+     └─────────────┬──────────────┘
+                   │
+         Structured Medical Answer
+         (cited, evidence-graded, multilingual)
 ```
 
 ---
 
-## 🔬 How It Works
+## 🔬 RAG Pipeline — Step by Step
 
-| Step | Description |
-|------|-------------|
-| 1️⃣ **Query Translation** | The user's question is used to build a precise PubMed search query |
-| 2️⃣ **PubMed Retrieval** | Relevant articles (title + abstract) are fetched from NCBI E-utilities API |
-| 3️⃣ **Vectorization** | Articles are embedded with `BAAI/bge-base-en` and indexed in FAISS |
-| 4️⃣ **Semantic Search** | Top-k most relevant documents retrieved using cosine similarity |
-| 5️⃣ **LLM Generation** | Retrieved documents sent to LLM to generate a structured, cited answer |
+| Step | Module | Description |
+|------|--------|-------------|
+| **1 — Query Translation** | `open_router.py` | The user's question → precise PubMed MeSH query in English via LLM |
+| **2 — PubMed Retrieval** | `download_pubmed.py` | Batch-fetch articles (title + abstract) from NCBI E-utilities |
+| **3 — Preprocessing** | `download_pubmed.py` | Clean text: strip noise, normalize whitespace, remove special chars |
+| **4 — Vectorization** | `bio_clinical_embeddings.py` | Embed abstracts with `BAAI/bge-base-en` → FAISS index |
+| **5 — Semantic Search** | `bio_clinical_embeddings.py` | Retrieve top-k documents by cosine similarity (BGE score threshold) |
+| **6 — Answer Generation** | `open_router.py` | Stream structured, document-cited answer via Qwen3-235B |
 
 ---
 
@@ -99,20 +110,30 @@ User Question
 
 ```
 medical-rag-assistant/
+│
 ├── src/
-│   ├── streamlit_app.py            # Streamlit web interface (main entry point)
-│   ├── main.py                     # CLI interface
-│   ├── download_pubmed.py          # PubMed article downloader (NCBI API)
-│   ├── bio_clinical_embeddings.py  # BGE embeddings + FAISS vector store
-│   └── open_router.py              # OpenRouter LLM client (streaming + sync)
+│   ├── streamlit_app.py            # 🖥️  Streamlit web interface (main entry point)
+│   ├── main.py                     # ⌨️  CLI interface (interactive terminal mode)
+│   ├── download_pubmed.py          # 📥  PubMed batch downloader + text preprocessor
+│   ├── bio_clinical_embeddings.py  # 🧠  BGE embeddings + FAISS vector store
+│   └── open_router.py              # 🤖  OpenRouter LLM client (streaming + sync)
+│
+├── tests/
+│   ├── conftest.py                 # Pytest configuration & shared fixtures
+│   ├── test_download_pubmed.py     # Unit tests — PubMed downloader
+│   ├── test_bio_clinical_embeddings.py  # Unit tests — embeddings & search
+│   └── test_open_router.py         # Unit tests — OpenRouter client
+│
 ├── data/
-│   ├── raw/                        # Static medical reference data
-│   └── cache/                      # Downloaded PubMed articles (auto-generated)
-├── .env.example                    # Template for environment variables
-├── Dockerfile                      # Docker image definition
-├── docker-compose.yml              # Docker Compose for easy deployment
-├── Makefile                        # Developer shortcuts
-└── requirements.txt                # Python dependencies
+│   └── cache/                      # 💾  Auto-generated PubMed cache (git-ignored)
+│
+├── .github/workflows/ci.yml        # ✅  GitHub Actions CI (pytest on every push)
+├── .env.example                    # 🔑  Environment variable template
+├── Dockerfile                      # 🐳  Container image definition
+├── docker-compose.yml              # 🐳  One-command local deployment
+├── Makefile                        # 🛠️  Developer shortcuts (install, run, clean…)
+├── requirements.txt                # 📦  Full Python dependencies
+└── requirements-ci.txt             # 📦  Lightweight CI-only dependencies
 ```
 
 ---
@@ -122,44 +143,68 @@ medical-rag-assistant/
 ### Prerequisites
 
 - Python **3.11+**
-- An [OpenRouter](https://openrouter.ai) API key (free tier available)
+- An [OpenRouter](https://openrouter.ai) API key — free tier available
 
-### 1. Clone & configure
+### 1 · Clone & configure
 
 ```bash
 git clone https://github.com/zakaria-ch49/Medical-Question-Answering-with-RAG.git
 cd Medical-Question-Answering-with-RAG
 
 cp .env.example .env
-# Edit .env and add your OPENROUTER_API_KEY
+# Open .env and paste your OPENROUTER_API_KEY
 ```
 
-### 2. Install dependencies
+### 2 · Install dependencies
 
 ```bash
 pip install -r requirements.txt
+# or: make install
 ```
 
-### 3. Run the application
+### 3 · Launch the web UI
 
 ```bash
-# Streamlit web UI
 streamlit run src/streamlit_app.py
+# or: make run
 ```
 
-Open your browser at **http://localhost:7860**
+Open **http://localhost:8501** in your browser.
+
+### 4 · (Optional) CLI mode
+
+```bash
+python src/main.py
+# or: make cli
+```
 
 ---
 
 ## 🐳 Docker Deployment
 
 ```bash
-# Build and start
-docker compose up --build
+# Build and start (detached)
+docker compose up --build -d
+
+# Follow logs
+docker compose logs -f
 
 # Stop
 docker compose down
 ```
+
+The app is exposed on port **7860** (HuggingFace Spaces compatible).
+
+---
+
+## ✅ Running Tests
+
+```bash
+pip install -r requirements-ci.txt
+pytest tests/ -v
+```
+
+The test suite uses mocks — no internet connection or GPU required.
 
 ---
 
@@ -168,36 +213,56 @@ docker compose down
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `OPENROUTER_API_KEY` | Your [OpenRouter](https://openrouter.ai) API key | ✅ Yes |
-| `HF_TOKEN` | Hugging Face token (for model access) | ⚡ Optional |
+| `HF_TOKEN` | Hugging Face token (optional, for private models) | ⚡ Optional |
+
+Create a `.env` file from the template:
+
+```bash
+cp .env.example .env
+```
 
 ---
 
 ## 📦 Tech Stack
 
-| Technology | Role |
-|------------|------|
-| `Streamlit` | Interactive web UI |
-| `LangChain` | RAG pipeline orchestration |
-| `BAAI/bge-base-en` | Biomedical text embeddings |
-| `FAISS` | Vector similarity search |
-| `OpenRouter` | LLM API gateway |
-| `Qwen3-VL-235B-A22B-Thinking` | LLM used for answer generation (235B total params, 22B active — MoE architecture) |
-| `PubMed NCBI API` | Scientific medical literature |
-| `Docker` | Containerized deployment |
+| Technology | Version | Role |
+|------------|---------|------|
+| [Streamlit](https://streamlit.io) | latest | Interactive web UI |
+| [LangChain](https://langchain.com) | latest | RAG pipeline orchestration |
+| [BAAI/bge-base-en](https://huggingface.co/BAAI/bge-base-en) | — | Biomedical text embeddings |
+| [FAISS](https://github.com/facebookresearch/faiss) | cpu | Vector similarity search |
+| [OpenRouter](https://openrouter.ai) | — | Unified LLM API gateway |
+| [Qwen3-235B-A22B-Thinking](https://openrouter.ai/qwen/qwen3-vl-235b-a22b-thinking) | 235B / 22B active | Answer generation (MoE, streaming) |
+| [PubMed NCBI API](https://www.ncbi.nlm.nih.gov/home/develop/api/) | E-utilities | Scientific medical literature |
+| [Docker](https://docker.com) | — | Containerized deployment |
+| [pytest](https://pytest.org) | — | Unit testing |
 
-> 🧠 **LLM Details:** [`qwen/qwen3-vl-235b-a22b-thinking`](https://openrouter.ai/qwen/qwen3-vl-235b-a22b-thinking) via OpenRouter
-> - **Total parameters:** 235 billion
-> - **Active parameters:** 22 billion (Mixture of Experts)
-> - **Capability:** Advanced reasoning, multilingual, medical context understanding
+> 🧠 **LLM Details — `qwen/qwen3-vl-235b-a22b-thinking`**
+> - **235 billion** total parameters · **22 billion** active (Mixture of Experts)
+> - Advanced chain-of-thought reasoning · Multilingual · Strong medical comprehension
 
 ---
 
 ## ⚠️ Limitations
 
-- 🌐 **Internet required** — PubMed articles are fetched in real-time; no offline mode available
-- 🐢 **First query is slow** — The BGE embedding model is loaded on first run (~30s on CPU)
-- 📄 **Abstract-only** — Only titles and abstracts are retrieved, not full-text articles
-- 🔑 **API key required** — An OpenRouter API key is needed to generate answers
+- 🌐 **Internet required** — PubMed articles are fetched live; no offline mode
+- 🐢 **Cold start** — BGE embedding model loads on first query (~30 s on CPU)
+- 📄 **Abstracts only** — Full-text articles are not retrieved, only titles & abstracts
+- 🔑 **API key required** — An OpenRouter key is needed to generate answers
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — see [LICENSE](LICENSE) for details.
+
+---
+
+<div align="center">
+
+Made with ❤️ for educational purposes · **Not for clinical use**
+
+</div>
 - 🏥 **Not for clinical use** — For educational and research purposes only; always consult a healthcare professional
 - 🌍 **English-biased** — PubMed is predominantly in English; non-English queries may return fewer results
 
