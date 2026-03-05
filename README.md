@@ -62,29 +62,29 @@ User Question (any language)
         │
         ▼
 ┌───────────────────────────────────────────────┐
-│          Streamlit Web UI                      │
-│          src/streamlit_app.py                  │
+│          Streamlit Web UI                     │
+│          src/streamlit_app.py                 │
 └──────────────────┬────────────────────────────┘
                    │
      ┌─────────────▼──────────────┐
-     │   Query Translator          │   OpenRouter API
-     │   (LLM → MeSH English)      │ ──────────────────
+     │   Query Translator         │   OpenRouter API
+     │   (LLM → MeSH English)     │ ──────────────────
      └─────────────┬──────────────┘
                    │  optimised PubMed query
      ┌─────────────▼──────────────┐
-     │   PubMed Downloader         │   src/download_pubmed.py
-     │   NCBI E-utilities API      │   (batch fetch, up to 200 articles)
+     │   PubMed Downloader        │   src/download_pubmed.py
+     │   NCBI E-utilities API     │   (batch fetch, up to 200 articles)
      └─────────────┬──────────────┘
                    │  title + abstract (preprocessed)
      ┌─────────────▼──────────────┐
-     │   BGE Embedding Engine      │   src/bio_clinical_embeddings.py
-     │   BAAI/bge-base-en          │
-     │   FAISS Vector Index        │
+     │   BGE Embedding Engine     │   src/bio_clinical_embeddings.py
+     │   BAAI/bge-base-en         │
+     │   FAISS Vector Index       │
      └─────────────┬──────────────┘
                    │  top-k relevant documents (BGE score ≤ 0.30)
      ┌─────────────▼──────────────┐
-     │   OpenRouter LLM            │   src/open_router.py
-     │   Qwen3-235B-A22B-Thinking  │   (streaming SSE)
+     │   OpenRouter LLM           │   src/open_router.py
+     │   Qwen3-235B-A22B-Thinking │   (streaming SSE)
      └─────────────┬──────────────┘
                    │
          Structured Medical Answer
