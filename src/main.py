@@ -15,7 +15,7 @@ import requests, json
 # ─── Constantes ───────────────────────────────────────────────────────────────
 SEPARATOR    = "═" * 60
 SUB_SEP      = "─" * 60
-MAX_ARTICLES = 100   # Nombre max d'articles à télécharger depuis PubMed
+MAX_ARTICLES = 30    # Nombre max d'articles à télécharger (PubMed + FDA)
 TOP_K        = 5     # Nombre de documents similaires à récupérer
 
 # ─── Traduction automatique vers l'anglais ────────────────────────────────────
@@ -108,7 +108,7 @@ def display_response(response):
     print("⚠️  AVERTISSEMENT MÉDICAL")
     print(SUB_SEP)
     print("  • Cette réponse est générée automatiquement à partir d'articles PubMed")
-    print("    et ne remplace PAS l'avis d'un professionnel de santé.")
+    print("    et de fiches médicaments openFDA — elle ne remplace PAS l'avis d'un professionnel de santé.")
     print("  • Vérifiez chaque référence dans sa source originale avant toute utilisation.")
     print("  • Ne dépassez jamais les doses recommandées sans avis médical.")
     print("  • Certaines approches mentionnées peuvent être expérimentales ou")
@@ -121,13 +121,17 @@ def display_documents(results_with_scores):
     """
     Affiche les documents pertinents trouvés avec leur score de pertinence.
     Avec BGE + normalize_embeddings : distance L2 normalisée, score bas = plus pertinent.
+    Affiche un badge [FDA] ou un lien PubMed selon la source.
     """
     print(f"\n{SEPARATOR}")
     print(f"📄  DOCUMENTS PERTINENTS TROUVÉS ({len(results_with_scores)})")
     print(SEPARATOR)
     for i, (doc, score) in enumerate(results_with_scores, 1):
         pertinence = "🟢 Très pertinent" if score < 0.2 else "🟡 Pertinent" if score < 0.35 else "🔴 Peu pertinent"
-        print(f"\n  [{i}] PMID : {doc.metadata['source']}  |  Score : {score:.3f}  {pertinence}")
+        pmid = doc.metadata['source']
+        is_fda = str(pmid).startswith("fda-")
+        source_tag = "🟠 [FDA Drug Label]" if is_fda else f"🔵 [PubMed] PMID:{pmid}"
+        print(f"\n  [{i}] {source_tag}  |  Score : {score:.3f}  {pertinence}")
         print(f"      Titre : {doc.metadata['title']}")
         print(f"      Résumé : {doc.page_content[:300]}...")
         print(f"  {SUB_SEP}")
@@ -157,15 +161,17 @@ def run_rag_pipeline(pubmed_query, user_question, retmax=MAX_ARTICLES, top_k=TOP
     if question_en.lower() != user_question.lower():
         print(f"✅  Question FAISS  : « {user_question} »  →  « {question_en} »")
 
-    # Étape 1 : Téléchargement des articles
-    print("\n📥  Étape 1/4 — Téléchargement des articles depuis PubMed...")
+    # Étape 1 : Téléchargement des articles (PubMed + openFDA en parallèle)
+    print("\n📥  Étape 1/4 — Téléchargement depuis PubMed + openFDA...")
     articles = download_articles(pubmed_query_en, retmax=retmax)
 
     if not articles:
-        print("⚠️  Aucun article trouvé. Fin du pipeline.")
+        print("⚠️  Aucun document trouvé (ni PubMed ni openFDA). Fin du pipeline.")
         return
 
-    print(f"✅  {len(articles)} articles téléchargés.")
+    n_fda    = sum(1 for a in articles if a["pmid"].startswith("fda-"))
+    n_pubmed = len(articles) - n_fda
+    print(f"✅  {len(articles)} documents récupérés (PubMed : {n_pubmed} | FDA : {n_fda}).")
 
     # Étape 2 : Création de l'index vectoriel
     print("\n🔢  Étape 2/4 — Création de l'index vectoriel...")
@@ -187,7 +193,7 @@ def run_rag_pipeline(pubmed_query, user_question, retmax=MAX_ARTICLES, top_k=TOP
 # ─── Interface interactive ─────────────────────────────────────────────────────
 def main():
     print(f"\n{SEPARATOR}")
-    print("🏥  ASSISTANT MÉDICAL RAG — PubMed + OpenRouter")
+    print("🏥  ASSISTANT MÉDICAL RAG — PubMed + openFDA + OpenRouter")
     print(SEPARATOR)
     print("Tapez 'quitter' pour arrêter.\n")
 

@@ -34,7 +34,7 @@ from bio_clinical_embeddings import (
 from open_router import stream_openrouter, OPENROUTER_API_KEY
 
 # ─── Constantes ───────────────────────────────────────────────────────────────
-DEFAULT_RETMAX    = 50
+DEFAULT_RETMAX    = 30
 DEFAULT_TOP_K     = 5
 SCORE_THRESHOLD   = 0.30   # Seuil strict : distance BGE ≤ 0.30 (hors-sujet filtrés)
 MODEL_NAME        = "qwen/qwen3-vl-235b-a22b-thinking"
@@ -353,6 +353,8 @@ div[data-testid="stButton"] > button:hover {
 .badge-green  { background:#052e16; color:#86efac !important; border:1px solid #16a34a; border-radius:20px; padding:0.2rem 0.65rem; font-size:0.72rem; font-weight:600; }
 .badge-yellow { background:#1c1500; color:#fde68a !important; border:1px solid #ca8a04; border-radius:20px; padding:0.2rem 0.65rem; font-size:0.72rem; font-weight:600; }
 .badge-red    { background:#1c0a0a; color:#fca5a5 !important; border:1px solid #dc2626; border-radius:20px; padding:0.2rem 0.65rem; font-size:0.72rem; font-weight:600; }
+.badge-fda    { background:#1c0a00; color:#fdba74 !important; border:1px solid #ea580c; border-radius:20px; padding:0.2rem 0.65rem; font-size:0.72rem; font-weight:600; }
+.badge-pubmed { background:#0d1f3c; color:#93c5fd !important; border:1px solid #1d4ed8; border-radius:20px; padding:0.2rem 0.65rem; font-size:0.72rem; font-weight:600; }
 
 /* ══ Query chips ═══════════════════════════════════════════════════════════ */
 .query-chip {
@@ -504,17 +506,21 @@ def run_rag_pipeline(user_question: str, pubmed_hint: str, retmax: int, top_k: i
             st.markdown(f"**FAISS Question:** `{question_en}`")
         status.update(label="Step 1/4 — Translation complete", state="complete", expanded=False)
 
-    # ── Step 1: PubMed Download ──────────────────────────────────────────────
-    with st.status(f"Step 2/4 — Downloading {retmax} articles from PubMed…", expanded=True) as status:
+    # ── Step 1: PubMed + openFDA Download ───────────────────────────────────────
+    with st.status(f"Step 2/4 — Downloading documents from PubMed + openFDA…", expanded=True) as status:
         articles = download_articles(pubmed_query_en, retmax=retmax)
         if not articles:
-            result["error"] = f"No articles found for '{pubmed_query_en}' on PubMed."
-            status.update(label="No articles found", state="error", expanded=True)
+            result["error"] = f"No documents found for '{pubmed_query_en}' on PubMed or openFDA."
+            status.update(label="No documents found", state="error", expanded=True)
             return result
 
+        n_fda    = sum(1 for a in articles if a["pmid"].startswith("fda-"))
+        n_pubmed = len(articles) - n_fda
         result["articles_count"] = len(articles)
-        st.markdown(f"**{len(articles)}** articles downloaded from PubMed")
-        status.update(label=f"Step 2/4 — {len(articles)} articles downloaded", state="complete", expanded=False)
+        result["n_pubmed"] = n_pubmed
+        result["n_fda"]    = n_fda
+        st.markdown(f"**{n_pubmed}** PubMed articles + **{n_fda}** FDA drug labels = **{len(articles)}** total documents")
+        status.update(label=f"Step 2/4 — {len(articles)} documents downloaded (PubMed: {n_pubmed} | FDA: {n_fda})", state="complete", expanded=False)
 
     # ── Step 2: FAISS Vector Index ────────────────────────────────────────────
     with st.status("Step 3/4 — Building FAISS vector index…", expanded=True) as status:
@@ -655,9 +661,9 @@ if user_question:
             <div class="section-card">
                 <div class="section-title">Search Summary</div>
                 <div class="metric-grid">
-                    <div class="metric-pill"><div class="mp-value">{result["articles_count"]}</div><div class="mp-label">PubMed Articles</div></div>
+                    <div class="metric-pill"><div class="mp-value">{result.get("n_pubmed", result["articles_count"])}</div><div class="mp-label">PubMed Articles</div></div>
+                    <div class="metric-pill"><div class="mp-value">{result.get("n_fda", 0)}</div><div class="mp-label">FDA Drug Labels</div></div>
                     <div class="metric-pill"><div class="mp-value">{len(result["documents"])}</div><div class="mp-label">Selected Docs</div></div>
-                    <div class="metric-pill"><div class="mp-value">{retmax}</div><div class="mp-label">Requested</div></div>
                     <div class="metric-pill"><div class="mp-value">{top_k}</div><div class="mp-label">FAISS Top-K</div></div>
                     <div class="metric-pill"><div class="mp-value">{SCORE_THRESHOLD}</div><div class="mp-label">Score Threshold</div></div>
                 </div>
@@ -674,9 +680,9 @@ if user_question:
                     st.markdown("**FAISS Question:**")
                     st.markdown(f'<span class="query-chip">{result["question_en"]}</span>', unsafe_allow_html=True)
 
-            # ── PubMed Documents ──────────────────────────────────────────────
+            # ── Documents (PubMed + FDA) ──────────────────────────────────────
             st.markdown("---")
-            st.markdown(f'<div class="section-card"><div class="section-title">Selected PubMed Documents ({len(result["documents"])} / {top_k})</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="section-card"><div class="section-title">Selected Documents — PubMed + FDA ({len(result["documents"])} / {top_k})</div></div>', unsafe_allow_html=True)
 
             for i, (doc, score) in enumerate(result["documents"], 1):
                 _, badge_cls, label = score_label(score)
@@ -684,6 +690,11 @@ if user_question:
                 title    = html_module.escape(doc.metadata.get("title", "No title"))
                 abstract = doc.page_content
                 abstract_preview = html_module.escape(abstract[:380]) + ("…" if len(abstract) > 380 else "")
+                is_fda   = str(pmid).startswith("fda-")
+                if is_fda:
+                    source_html = f'<span class="badge-fda">FDA Drug Label</span>&nbsp;&nbsp;ID: <strong>{html_module.escape(pmid)}</strong>'
+                else:
+                    source_html = f'PMID: <a href="https://pubmed.ncbi.nlm.nih.gov/{pmid}/" target="_blank">{pmid}</a>'
 
                 st.markdown(f"""
                 <div class="doc-card">
@@ -693,7 +704,7 @@ if user_question:
                         <span class="{badge_cls}">{label}</span>
                     </div>
                     <div class="doc-pmid">
-                        PMID: <a href="https://pubmed.ncbi.nlm.nih.gov/{pmid}/" target="_blank">{pmid}</a>
+                        {source_html}
                         &nbsp;·&nbsp; BGE Score: <strong>{score:.3f}</strong>
                     </div>
                     <div class="doc-abstract">{abstract_preview}</div>
@@ -793,7 +804,7 @@ elif st.session_state.get("current_result"):
                 st.markdown(f'<span class="query-chip">{result["question_en"]}</span>', unsafe_allow_html=True)
 
         st.markdown("---")
-        st.markdown(f'<div class="section-card"><div class="section-title">PubMed Documents ({len(result["documents"])} found)</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="section-card"><div class="section-title">Selected Documents — PubMed + FDA ({len(result["documents"])} found)</div></div>', unsafe_allow_html=True)
 
         for i, (doc, score) in enumerate(result["documents"], 1):
             _, badge_cls, label = score_label(score)
@@ -801,6 +812,11 @@ elif st.session_state.get("current_result"):
             title    = html_module.escape(doc.metadata.get("title", "No title"))
             abstract = doc.page_content
             abstract_preview = html_module.escape(abstract[:380]) + ("…" if len(abstract) > 380 else "")
+            is_fda   = str(pmid).startswith("fda-")
+            if is_fda:
+                source_html = f'<span class="badge-fda">FDA Drug Label</span>&nbsp;&nbsp;ID: <strong>{html_module.escape(str(pmid))}</strong>'
+            else:
+                source_html = f'PMID: <a href="https://pubmed.ncbi.nlm.nih.gov/{pmid}/" target="_blank">{pmid}</a>'
             st.markdown(f"""
             <div class="doc-card">
                 <div class="doc-card-header">
@@ -808,7 +824,7 @@ elif st.session_state.get("current_result"):
                     <span class="doc-title">{title}</span>
                     <span class="{badge_cls}">{label}</span>
                 </div>
-                <div class="doc-pmid">PMID: <a href="https://pubmed.ncbi.nlm.nih.gov/{pmid}/" target="_blank">{pmid}</a> · BGE Score: <strong>{score:.3f}</strong></div>
+                <div class="doc-pmid">{source_html} · BGE Score: <strong>{score:.3f}</strong></div>
                 <div class="doc-abstract">{abstract_preview}</div>
             </div>
             """, unsafe_allow_html=True)

@@ -1,3 +1,4 @@
+#permet d’utiliser une structure standard pour manipuler tes textes et leurs infos dans des workflows de recherche ou d’IA.
 from langchain_core.documents import Document
 
 # ─── Modèle d'embedding ───────────────────────────────────────────────────────
